@@ -6,16 +6,16 @@
 
 
 // deklarasi pin nodemcu
-#define echo D1                     //pin echo sensor jarak di pin D1 /GPIO-05
-#define triger D2                   //pin triger sensor jarak di pin D2 / GPIO-04
-#define buzer D7                    //buzzer di pin D7 / GPIO-13
+#define echo D3                     //pin echo sensor jarak di pin D3 / GPIO0
+#define triger D4                   //pin triger sensor jarak di pin D4 /GPIO2
+#define buzer D6                    //buzzer di pin D6 / GPIO12
 
 
 float stok;
-const char* ssid = "Ayu kotabanda";                           //nama wifi yang mau di koneksikan ke NODEMCU
-const char* pass = "alhamdulillah2021";                       //pasword wifi
-const char* host = "http://pakanikaniot.kontrollampu.xyz";          //alamat host server
-Servo servo;                                                  //kelas Servo di jadikan objeck servo
+const char* ssid = "PakaIOT";                           //nama wifi yang mau di koneksikan ke NODEMCU
+const char* pass = "pakanikanv1";                           //pasword wifi
+const char* host = "192.168.43.147";                        //alamat host server
+Servo servo;                                             //kelas Servo di jadikan objeck servo
 
 
 //awal function
@@ -39,27 +39,27 @@ void beri_makan() {
   tone(buzer, 900);
   delay(500);
   noTone(buzer);
-  int banyak = 10;
+  
+  int banyak = 5;
+  
   for (int i = 0; i <= banyak; i++) {
     servo.write(180);
-    delay(400);
+    delay(350);
     servo.write(0);
-    delay(400);
+    delay(350);
   }
-
-
 }
 
 // akhir function()
 
 void setup() {
 
-  Serial.begin(9600);                       //set potret tampilan serial arduino
-  pinMode(buzer, OUTPUT);                   //set buzer jadi output
-  pinMode(echo, INPUT);                     //set echo ultrasonik jadi input
-  pinMode(triger, OUTPUT);                  //set triger ultrasonik jadi output
-  servo.attach(12);                         //set servo terpasang pada pin data GPIO-12 NODEMCU / pin D6
-  servo.write(0);                           //saat mulai posisikan servo pada 0 derajat (botol pakan tertutup)
+  Serial.begin(9600);             //set potret tampilan serial arduino
+  pinMode(buzer, OUTPUT);         //set buzer jadi output
+  pinMode(echo, INPUT);           //set echo ultrasonik jadi input
+  pinMode(triger, OUTPUT);        //set triger ultrasonik jadi output
+  servo.attach(14);               //set servo terpasang pada pin data GPIO14 NODEMCU / pin D5
+  servo.write(0);                 //saat mulai posisikan servo pada 0 derajat (botol pakan tertutup)
 
 
   WiFi.hostname("IOT ESP8266 by Rahayu");
@@ -69,12 +69,8 @@ void setup() {
     delay(1000);
   }
   Serial.println("");
-  tone(buzer, 800);
-  delay(200);
-  noTone(buzer);
   Serial.print("Berhasil Terhubung ke ");
   Serial.println(ssid);
-  tone(buzer, 1000, 2000);
   //bila berhasil terkoneksi makaka akan keluar dari while di atas dan program di jalankan
 
 }
@@ -83,8 +79,7 @@ void loop() {
 
   //baca koneksi ke server
   WiFiClient client;
-  Serial.println(host);
-  if (!client.connect(host, 80)) {                                //bila tidak kodek ke host di port 80 maka akan berulang di IF
+  if (!client.connect(host, 80)) {                      //bila tidak kodek ke host di port 80 maka akan berulang di IF
     Serial.println("Koneksi ke server bermasalah");
     return;
   }
@@ -92,13 +87,11 @@ void loop() {
   //keluar dari if karna berhasil konek ke server
   String Link;                                                    //variabel penampung data yang akan dirikwes k server
   HTTPClient http;                                                //deklarasikan kelas httpclient ke obyek
-  Link = String(host) + "/bacadata.php";
-  Serial.println(Link);
-  Serial.println("/n");
+  Link = "http://" + String(host) + "/MyFish/bacadata.php";
 
   //eksekusi linknya
-  int hasilkirim1 = http.GET();
-  Serial.println(hasilkirim1);
+  http.begin(client, Link);                                       //bagian exekusi link rikwes ke server (nilai dikirim ke server)
+  http.GET();
 
   //baca feedback
   String hasilrikwes = http.getString();                           //variabel penampung balasan server
@@ -109,22 +102,16 @@ void loop() {
     beri_makan();                                                   //panggil fungsi beri makan untuk memberi pakan ikan
 
     //setelah berhasil memberikan makan kembalikan status jadwal_makan ke 0
-    Link = String(host) + "/ubahstatus.php";
-    Serial.println(Link);
-    Serial.println("/n");
+    Link = "http://" + String(host) + "/MyFish/ubahstatus.php";
     http.begin(client, Link);
-    int hasilkirim2 = http.GET();
-    Serial.println(hasilkirim2);
-
+    http.GET();
 
     //setelah itu sistem akan mengirimkan data Stok pakan dari sensor ke database
     stok = cek_pakan();
-    Link = String(host) + "/index.php?nilai=" + String(stok);
+    Link = "http://" + String(host) + "/MyFish/index.php?nilai=" + String(stok);
     http.begin(client, Link);
-    Serial.println(Link);
-    Serial.println("/n");
-    int hasilkirim3 = http.GET();
-    Serial.println(hasilkirim3);
+    http.GET();
+    Serial.println(stok);
   }
 
   delay(2000);
